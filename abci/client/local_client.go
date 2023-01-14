@@ -320,7 +320,7 @@ func (app *localClient) ApplySnapshotChunkSync(
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 	fmt.Printf("Local client starts to ApplySnapshotChunkSync for chunk %d \n", req.Index)
-	fmt.Printf("Local client app is %s", app.String())
+	fmt.Printf("Local client app is %s\n", app.String())
 	res := app.Application.ApplySnapshotChunk(req)
 	return &res, nil
 }
