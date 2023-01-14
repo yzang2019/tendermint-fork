@@ -51,6 +51,7 @@ type AppConnSnapshot interface {
 	OfferSnapshotSync(types.RequestOfferSnapshot) (*types.ResponseOfferSnapshot, error)
 	LoadSnapshotChunkSync(types.RequestLoadSnapshotChunk) (*types.ResponseLoadSnapshotChunk, error)
 	ApplySnapshotChunkSync(types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error)
+	ApplySnapshotChunkAsync(types.RequestApplySnapshotChunk) *abcicli.ReqRes
 }
 
 //-----------------------------------------------------------------------------------------
@@ -194,4 +195,9 @@ func (app *appConnSnapshot) ApplySnapshotChunkSync(
 	req types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
 	fmt.Println("appConn start doing ApplySnapshotChunkSync")
 	return app.appConn.ApplySnapshotChunkSync(req)
+}
+
+func (app *appConnSnapshot) ApplySnapshotChunkAsync(req types.RequestApplySnapshotChunk) *abcicli.ReqRes {
+	fmt.Println("appConn start doing ApplySnapshotChunkAsync")
+	return app.appConn.ApplySnapshotChunkAsync(req)
 }

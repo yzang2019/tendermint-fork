@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	abcicli "github.com/tendermint/tendermint/abci/client"
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -369,13 +370,14 @@ func (s *syncer) offerSnapshot(snapshot *snapshot) error {
 // applyChunks applies chunks to the app. It returns various errors depending on the app's
 // response, or nil once the snapshot is fully restored.
 func (s *syncer) applyChunks(chunks *chunkQueue) error {
+	var callbacks []*abcicli.ReqRes
 	for {
 		s.logger.Info("Start applying chunks loop...")
 
 		waitForNextChunkStart := time.Now().UnixMilli()
 		chunk, err := chunks.Next()
 		if err == errDone {
-			return nil
+			break
 		} else if err != nil {
 			return fmt.Errorf("failed to fetch chunk: %w", err)
 		}
@@ -384,56 +386,69 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 		waitForNextChunkLatency := waitForNextChunkEnd - waitForNextChunkStart
 		s.logger.Info(fmt.Sprintf("Wait for next chunk id %d latency is: %d", chunk.Index, waitForNextChunkLatency))
 
-		resp, err := s.conn.ApplySnapshotChunkSync(
-			abci.RequestApplySnapshotChunk{
-				Index:  chunk.Index,
-				Chunk:  chunk.Chunk,
-				Sender: string(chunk.Sender),
-			})
-
-		applySnapshotChunkEnd := time.Now().UnixMilli()
-		applySnapshotChunkLatency := applySnapshotChunkEnd - waitForNextChunkEnd
-		s.logger.Info(fmt.Sprintf("Apply chunk id %d latency is: %d", chunk.Index, applySnapshotChunkLatency))
-
-		if err != nil {
-			return fmt.Errorf("failed to apply chunk %v: %w", chunk.Index, err)
+		req := abci.RequestApplySnapshotChunk{
+			Index:  chunk.Index,
+			Chunk:  chunk.Chunk,
+			Sender: string(chunk.Sender),
 		}
-		s.logger.Info("Applied snapshot chunk to ABCI app", "height", chunk.Height,
-			"format", chunk.Format, "chunk", chunk.Index, "total", chunks.Size())
-
-		// Discard and refetch any chunks as requested by the app
-		for _, index := range resp.RefetchChunks {
-			err := chunks.Discard(index)
-			if err != nil {
-				return fmt.Errorf("failed to discard chunk %v: %w", index, err)
-			}
-		}
-
-		// Reject any senders as requested by the app
-		for _, sender := range resp.RejectSenders {
-			if sender != "" {
-				s.snapshots.RejectPeer(p2p.ID(sender))
-				err := chunks.DiscardSender(p2p.ID(sender))
-				if err != nil {
-					return fmt.Errorf("failed to reject sender: %w", err)
-				}
-			}
-		}
-
-		switch resp.Result {
-		case abci.ResponseApplySnapshotChunk_ACCEPT:
-		case abci.ResponseApplySnapshotChunk_ABORT:
-			return errAbort
-		case abci.ResponseApplySnapshotChunk_RETRY:
-			chunks.Retry(chunk.Index)
-		case abci.ResponseApplySnapshotChunk_RETRY_SNAPSHOT:
-			return errRetrySnapshot
-		case abci.ResponseApplySnapshotChunk_REJECT_SNAPSHOT:
-			return errRejectSnapshot
-		default:
-			return fmt.Errorf("unknown ResponseApplySnapshotChunk result %v", resp.Result)
-		}
+		//resp, err := s.conn.ApplySnapshotChunkSync(
+		//	abci.RequestApplySnapshotChunk{
+		//		Index:  chunk.Index,
+		//		Chunk:  chunk.Chunk,
+		//		Sender: string(chunk.Sender),
+		//	})
+		s.logger.Info(fmt.Sprintf("Starting to apply chunk async for chunk id %d", chunk.Index))
+		callback := s.conn.ApplySnapshotChunkAsync(req)
+		callbacks = append(callbacks, callback)
+		s.logger.Info(fmt.Sprintf("Appended chunk async call for chunk id %d", chunk.Index))
+		//applySnapshotChunkEnd := time.Now().UnixMilli()
+		//applySnapshotChunkLatency := applySnapshotChunkEnd - waitForNextChunkEnd
+		//s.logger.Info(fmt.Sprintf("Apply chunk id %d latency is: %d", chunk.Index, applySnapshotChunkLatency))
+		//
+		//if err != nil {
+		//	return fmt.Errorf("failed to apply chunk %v: %w", chunk.Index, err)
+		//}
+		//s.logger.Info("Applied snapshot chunk to ABCI app", "height", chunk.Height,
+		//	"format", chunk.Format, "chunk", chunk.Index, "total", chunks.Size())
+		//
+		//// Discard and refetch any chunks as requested by the app
+		//for _, index := range resp.RefetchChunks {
+		//	err := chunks.Discard(index)
+		//	if err != nil {
+		//		return fmt.Errorf("failed to discard chunk %v: %w", index, err)
+		//	}
+		//}
+		//
+		//// Reject any senders as requested by the app
+		//for _, sender := range resp.RejectSenders {
+		//	if sender != "" {
+		//		s.snapshots.RejectPeer(p2p.ID(sender))
+		//		err := chunks.DiscardSender(p2p.ID(sender))
+		//		if err != nil {
+		//			return fmt.Errorf("failed to reject sender: %w", err)
+		//		}
+		//	}
+		//}
+		//
+		//switch resp.Result {
+		//case abci.ResponseApplySnapshotChunk_ACCEPT:
+		//case abci.ResponseApplySnapshotChunk_ABORT:
+		//	return errAbort
+		//case abci.ResponseApplySnapshotChunk_RETRY:
+		//	chunks.Retry(chunk.Index)
+		//case abci.ResponseApplySnapshotChunk_RETRY_SNAPSHOT:
+		//	return errRetrySnapshot
+		//case abci.ResponseApplySnapshotChunk_REJECT_SNAPSHOT:
+		//	return errRejectSnapshot
+		//default:
+		//	return fmt.Errorf("unknown ResponseApplySnapshotChunk result %v", resp.Result)
+		//}
 	}
+	s.logger.Info(fmt.Sprintf("Now starting to wait for all applying %d chunks to complete", len(callbacks)))
+	for _, cb := range callbacks {
+		cb.Wait()
+	}
+	return nil
 }
 
 // fetchChunks requests chunks from peers, receiving allocations from the chunk queue. Chunks
