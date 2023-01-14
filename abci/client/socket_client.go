@@ -410,6 +410,7 @@ func (cli *socketClient) LoadSnapshotChunkSync(
 
 func (cli *socketClient) ApplySnapshotChunkSync(
 	req types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
+	fmt.Println("Socket client start doing ApplySnapshotChunkSync")
 	reqres := cli.queueRequest(types.ToRequestApplySnapshotChunk(req))
 	if err := cli.FlushSync(); err != nil {
 		return nil, err
