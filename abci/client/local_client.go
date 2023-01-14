@@ -325,7 +325,7 @@ func (app *localClient) ApplySnapshotChunkSync(
 	start := time.Now().UnixMilli()
 	res := app.Application.ApplySnapshotChunk(req)
 	end := time.Now().UnixMilli()
-	fmt.Printf("Got a ApplySnapshotChunk response with latency: %d \n", end-start)
+	fmt.Printf("Got a ApplySnapshotChunk response for chunk %d with latency: %d \n", req.Index, end-start)
 
 	return &res, nil
 }

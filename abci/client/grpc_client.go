@@ -417,6 +417,6 @@ func (cli *grpcClient) LoadSnapshotChunkSync(
 func (cli *grpcClient) ApplySnapshotChunkSync(
 	params types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
 	fmt.Println("GRPC Client doing ApplySnapshotChunkSync line 419")
-	reqres := cli.ApplySnapshotChunkAsync(params)
-	return cli.finishSyncCall(reqres).GetApplySnapshotChunk(), cli.Error()
+	req := cli.ApplySnapshotChunkAsync(params)
+	return cli.finishSyncCall(req).GetApplySnapshotChunk(), cli.Error()
 }
