@@ -5,6 +5,7 @@ import (
 	types "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/service"
 	tmsync "github.com/tendermint/tendermint/libs/sync"
+	"github.com/tendermint/tendermint/types/time"
 )
 
 var _ Client = (*localClient)(nil)
@@ -320,8 +321,12 @@ func (app *localClient) ApplySnapshotChunkSync(
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 	fmt.Printf("Local client starts to ApplySnapshotChunkSync for chunk %d \n", req.Index)
-	fmt.Printf("Local client app is %s\n", app.String())
+	fmt.Printf("Local client app is %T, serivce is %s \n", app.Application, app.BaseService.String())
+	start := time.Now().UnixMilli()
 	res := app.Application.ApplySnapshotChunk(req)
+	end := time.Now().UnixMilli()
+	fmt.Printf("Got a ApplySnapshotChunk response with latency: %d \n", end-start)
+
 	return &res, nil
 }
 

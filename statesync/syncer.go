@@ -478,18 +478,24 @@ func (s *syncer) fetchChunks(ctx context.Context, snapshot *snapshot, chunks *ch
 
 		requestStart := time.Now().UnixMilli()
 		s.requestChunk(snapshot, index)
-		requestEnd := time.Now().UnixMilli()
-		latency := requestEnd - requestStart
-		s.logger.Info(fmt.Sprintf("RequestChunk id %d latency is %d", index, latency))
 
 		select {
 		case <-chunks.WaitFor(index):
 			next = true
+			requestEnd := time.Now().UnixMilli()
+			latency := requestEnd - requestStart
+			s.logger.Info(fmt.Sprintf("RequestChunk wait for id %d latency is %d", index, latency))
 
 		case <-ticker.C:
 			next = false
+			requestEnd := time.Now().UnixMilli()
+			latency := requestEnd - requestStart
+			s.logger.Info(fmt.Sprintf("RequestChunk ticker id %d latency is %d", index, latency))
 
 		case <-ctx.Done():
+			requestEnd := time.Now().UnixMilli()
+			latency := requestEnd - requestStart
+			s.logger.Info(fmt.Sprintf("RequestChunk done id %d latency is %d", index, latency))
 			return
 		}
 
