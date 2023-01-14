@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	context "golang.org/x/net/context"
 )
 
@@ -92,6 +93,7 @@ func (BaseApplication) LoadSnapshotChunk(req RequestLoadSnapshotChunk) ResponseL
 }
 
 func (BaseApplication) ApplySnapshotChunk(req RequestApplySnapshotChunk) ResponseApplySnapshotChunk {
+	fmt.Println("BaseApplication calling ApplySnapshotChunk doing nothing")
 	return ResponseApplySnapshotChunk{}
 }
 
@@ -179,6 +181,7 @@ func (app *GRPCApplication) LoadSnapshotChunk(
 
 func (app *GRPCApplication) ApplySnapshotChunk(
 	ctx context.Context, req *RequestApplySnapshotChunk) (*ResponseApplySnapshotChunk, error) {
+	fmt.Println("GRPCApplication calling ApplySnapshotChunk line 184")
 	res := app.app.ApplySnapshotChunk(*req)
 	return &res, nil
 }

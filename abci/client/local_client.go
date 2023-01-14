@@ -200,7 +200,7 @@ func (app *localClient) LoadSnapshotChunkAsync(req types.RequestLoadSnapshotChun
 func (app *localClient) ApplySnapshotChunkAsync(req types.RequestApplySnapshotChunk) *ReqRes {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
-
+	fmt.Println("local_client calling ApplySnapshotChunkAsync line 203")
 	res := app.Application.ApplySnapshotChunk(req)
 	return app.callback(
 		types.ToRequestApplySnapshotChunk(req),
@@ -320,6 +320,7 @@ func (app *localClient) ApplySnapshotChunkSync(
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 	fmt.Printf("Local client starts to ApplySnapshotChunkSync for chunk %d \n", req.Index)
+	fmt.Printf("Local client app is %s", app.String())
 	res := app.Application.ApplySnapshotChunk(req)
 	return &res, nil
 }

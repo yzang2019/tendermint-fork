@@ -167,6 +167,7 @@ func (app *PersistentKVStoreApplication) OfferSnapshot(
 
 func (app *PersistentKVStoreApplication) ApplySnapshotChunk(
 	req types.RequestApplySnapshotChunk) types.ResponseApplySnapshotChunk {
+	fmt.Println("persistent_kvstore handle ApplySnapshotChunk")
 	return types.ResponseApplySnapshotChunk{Result: types.ResponseApplySnapshotChunk_ABORT}
 }
 

@@ -295,6 +295,7 @@ func (cli *grpcClient) LoadSnapshotChunkAsync(params types.RequestLoadSnapshotCh
 }
 
 func (cli *grpcClient) ApplySnapshotChunkAsync(params types.RequestApplySnapshotChunk) *ReqRes {
+	fmt.Println("grpc_client calling ApplySnapshotChunkAsync line 298")
 	req := types.ToRequestApplySnapshotChunk(params)
 	res, err := cli.client.ApplySnapshotChunk(context.Background(), req.GetApplySnapshotChunk(), grpc.WaitForReady(true))
 	if err != nil {
@@ -415,7 +416,7 @@ func (cli *grpcClient) LoadSnapshotChunkSync(
 
 func (cli *grpcClient) ApplySnapshotChunkSync(
 	params types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
-	fmt.Println("GRPC Client doing ApplySnapshotChunkSync")
+	fmt.Println("GRPC Client doing ApplySnapshotChunkSync line 419")
 	reqres := cli.ApplySnapshotChunkAsync(params)
 	return cli.finishSyncCall(reqres).GetApplySnapshotChunk(), cli.Error()
 }

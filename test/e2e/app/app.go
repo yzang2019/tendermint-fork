@@ -239,6 +239,7 @@ func (app *Application) OfferSnapshot(req abci.RequestOfferSnapshot) abci.Respon
 
 // ApplySnapshotChunk implements ABCI.
 func (app *Application) ApplySnapshotChunk(req abci.RequestApplySnapshotChunk) abci.ResponseApplySnapshotChunk {
+	fmt.Println("App test handle ApplySnapshotChunk")
 	if app.restoreSnapshot == nil {
 		panic("No restore in progress")
 	}

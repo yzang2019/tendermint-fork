@@ -276,6 +276,7 @@ func (cli *socketClient) LoadSnapshotChunkAsync(req types.RequestLoadSnapshotChu
 }
 
 func (cli *socketClient) ApplySnapshotChunkAsync(req types.RequestApplySnapshotChunk) *ReqRes {
+	fmt.Println("socket client calling ApplySnapshotChunkAsync line 279")
 	return cli.queueRequest(types.ToRequestApplySnapshotChunk(req))
 }
 
@@ -410,7 +411,7 @@ func (cli *socketClient) LoadSnapshotChunkSync(
 
 func (cli *socketClient) ApplySnapshotChunkSync(
 	req types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
-	fmt.Println("Socket client start doing ApplySnapshotChunkSync")
+	fmt.Println("Socket client start doing ApplySnapshotChunkSync line 414")
 	reqres := cli.queueRequest(types.ToRequestApplySnapshotChunk(req))
 	if err := cli.FlushSync(); err != nil {
 		return nil, err
