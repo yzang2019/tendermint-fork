@@ -1,6 +1,7 @@
 package abcicli
 
 import (
+	"fmt"
 	types "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/service"
 	tmsync "github.com/tendermint/tendermint/libs/sync"
@@ -318,7 +319,7 @@ func (app *localClient) ApplySnapshotChunkSync(
 	req types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
-
+	fmt.Printf("Local client starts to apply chunk %d \n", req.Index)
 	res := app.Application.ApplySnapshotChunk(req)
 	return &res, nil
 }

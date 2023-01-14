@@ -1,4 +1,4 @@
-//nolint: gosec
+// nolint: gosec
 package app
 
 import (
@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 )
 
 const stateFileName = "app_state.json"
@@ -75,10 +76,14 @@ func (s *State) load() error {
 // save saves the state to disk. It does not take out a lock since it is called
 // internally by Commit which does lock.
 func (s *State) save() error {
+	startTime := time.Now().UnixMilli()
 	bz, err := json.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
+	marshalEnd := time.Now().UnixMilli()
+	marshalLatency := marshalEnd - startTime
+	fmt.Printf("Save state marshal latency is: %d", marshalLatency)
 	// We write the state to a separate file and move it to the destination, to
 	// make it atomic.
 	newFile := fmt.Sprintf("%v.new", s.currentFile)
@@ -86,6 +91,9 @@ func (s *State) save() error {
 	if err != nil {
 		return fmt.Errorf("failed to write state to %q: %w", s.currentFile, err)
 	}
+	writeFileEnd := time.Now().UnixMilli()
+	writeFileLatency := writeFileEnd - marshalEnd
+	fmt.Printf("Save state write file to %s latency is: %d", newFile, writeFileLatency)
 	// We take the current state and move it to the previous state, replacing it
 	if _, err := os.Stat(s.currentFile); err == nil {
 		if err := os.Rename(s.currentFile, s.previousFile); err != nil {
@@ -93,7 +101,13 @@ func (s *State) save() error {
 		}
 	}
 	// Finally, we take the new state and replace the current state.
-	return os.Rename(newFile, s.currentFile)
+	result := os.Rename(newFile, s.currentFile)
+
+	renameFileEnd := time.Now().UnixMilli()
+	renameFileLatency := renameFileEnd - writeFileEnd
+	fmt.Printf("Save state rename file to %s latency is: %d", result, renameFileLatency)
+
+	return result
 }
 
 // Export exports key/value pairs as JSON, used for state sync snapshots.
@@ -108,11 +122,16 @@ func (s *State) Export() ([]byte, error) {
 func (s *State) Import(height uint64, jsonBytes []byte) error {
 	s.Lock()
 	defer s.Unlock()
+	unmarshalStart := time.Now().UnixMilli()
 	values := map[string]string{}
 	err := json.Unmarshal(jsonBytes, &values)
 	if err != nil {
 		return fmt.Errorf("failed to decode imported JSON data: %w", err)
 	}
+	unmarshalEnd := time.Now().UnixMilli()
+	unmarshalLatency := unmarshalEnd - unmarshalStart
+	fmt.Printf("Import unmarshal latency for height %d is: %d", height, unmarshalLatency)
+
 	s.Height = height
 	s.Values = values
 	s.Hash = hashItems(values)

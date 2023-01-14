@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/tendermint/tendermint/abci/example/code"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -241,13 +242,18 @@ func (app *Application) ApplySnapshotChunk(req abci.RequestApplySnapshotChunk) a
 	if app.restoreSnapshot == nil {
 		panic("No restore in progress")
 	}
+
 	app.restoreChunks = append(app.restoreChunks, req.Chunk)
 	if len(app.restoreChunks) == int(app.restoreSnapshot.Chunks) {
 		bz := []byte{}
 		for _, chunk := range app.restoreChunks {
 			bz = append(bz, chunk...)
 		}
+		startImport := time.Now().UnixMilli()
 		err := app.state.Import(app.restoreSnapshot.Height, bz)
+		finishImport := time.Now().UnixMilli()
+		importLatency := finishImport - startImport
+		fmt.Printf("ImportState for chunk %d with size %d latency is: %d \n", req.Index, len(bz), importLatency)
 		if err != nil {
 			panic(err)
 		}

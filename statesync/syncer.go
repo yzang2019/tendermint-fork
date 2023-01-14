@@ -384,11 +384,12 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 		waitForNextChunkLatency := waitForNextChunkEnd - waitForNextChunkStart
 		s.logger.Info(fmt.Sprintf("Wait for next chunk id %d latency is: %d", chunk.Index, waitForNextChunkLatency))
 
-		resp, err := s.conn.ApplySnapshotChunkSync(abci.RequestApplySnapshotChunk{
-			Index:  chunk.Index,
-			Chunk:  chunk.Chunk,
-			Sender: string(chunk.Sender),
-		})
+		resp, err := s.conn.ApplySnapshotChunkSync(
+			abci.RequestApplySnapshotChunk{
+				Index:  chunk.Index,
+				Chunk:  chunk.Chunk,
+				Sender: string(chunk.Sender),
+			})
 
 		applySnapshotChunkEnd := time.Now().UnixMilli()
 		applySnapshotChunkLatency := applySnapshotChunkEnd - waitForNextChunkEnd
