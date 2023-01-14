@@ -52,6 +52,7 @@ func NewReactor(
 		cfg:       cfg,
 		conn:      conn,
 		connQuery: connQuery,
+		tempDir:   tempDir,
 	}
 	r.BaseReactor = *p2p.NewBaseReactor("StateSync", r)
 
