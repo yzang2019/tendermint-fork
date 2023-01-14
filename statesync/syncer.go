@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	abcicli "github.com/tendermint/tendermint/abci/client"
+	"sync"
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -370,7 +370,7 @@ func (s *syncer) offerSnapshot(snapshot *snapshot) error {
 // applyChunks applies chunks to the app. It returns various errors depending on the app's
 // response, or nil once the snapshot is fully restored.
 func (s *syncer) applyChunks(chunks *chunkQueue) error {
-	var callbacks []*abcicli.ReqRes
+	var wg sync.WaitGroup
 	for {
 		s.logger.Info("Start applying chunks loop...")
 
@@ -386,21 +386,18 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 		waitForNextChunkLatency := waitForNextChunkEnd - waitForNextChunkStart
 		s.logger.Info(fmt.Sprintf("Wait for next chunk id %d latency is: %d", chunk.Index, waitForNextChunkLatency))
 
-		req := abci.RequestApplySnapshotChunk{
-			Index:  chunk.Index,
-			Chunk:  chunk.Chunk,
-			Sender: string(chunk.Sender),
-		}
-		//resp, err := s.conn.ApplySnapshotChunkSync(
-		//	abci.RequestApplySnapshotChunk{
-		//		Index:  chunk.Index,
-		//		Chunk:  chunk.Chunk,
-		//		Sender: string(chunk.Sender),
-		//	})
 		s.logger.Info(fmt.Sprintf("Starting to apply chunk async for chunk id %d", chunk.Index))
-		callback := s.conn.ApplySnapshotChunkAsync(req)
-		callbacks = append(callbacks, callback)
-		s.logger.Info(fmt.Sprintf("Appended chunk async call for chunk id %d", chunk.Index))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			req := abci.RequestApplySnapshotChunk{
+				Index:  chunk.Index,
+				Chunk:  chunk.Chunk,
+				Sender: string(chunk.Sender),
+			}
+			s.conn.ApplySnapshotChunkSync(req)
+		}()
+
 		//applySnapshotChunkEnd := time.Now().UnixMilli()
 		//applySnapshotChunkLatency := applySnapshotChunkEnd - waitForNextChunkEnd
 		//s.logger.Info(fmt.Sprintf("Apply chunk id %d latency is: %d", chunk.Index, applySnapshotChunkLatency))
@@ -444,10 +441,9 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 		//	return fmt.Errorf("unknown ResponseApplySnapshotChunk result %v", resp.Result)
 		//}
 	}
-	s.logger.Info(fmt.Sprintf("Now starting to wait for all applying %d chunks to complete", len(callbacks)))
-	for _, cb := range callbacks {
-		cb.Wait()
-	}
+	s.logger.Info(fmt.Sprintf("Now starting to wait for all applying chunks to complete"))
+	wg.Wait()
+	s.logger.Info(fmt.Sprintf("Everything Done"))
 	return nil
 }
 

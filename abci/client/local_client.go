@@ -318,8 +318,8 @@ func (app *localClient) LoadSnapshotChunkSync(
 
 func (app *localClient) ApplySnapshotChunkSync(
 	req types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
-	app.mtx.Lock()
-	defer app.mtx.Unlock()
+	//app.mtx.Lock()
+	//defer app.mtx.Unlock()
 	fmt.Printf("Local client starts to ApplySnapshotChunkSync for chunk %d \n", req.Index)
 	fmt.Printf("Local client app is %T, serivce is %s \n", app.Application, app.BaseService.String())
 	start := time.Now().UnixMilli()
