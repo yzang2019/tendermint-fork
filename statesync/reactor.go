@@ -273,7 +273,7 @@ func (r *Reactor) Sync(stateProvider StateProvider, discoveryTime time.Duration)
 	}
 
 	hook()
-
+	r.Logger.Info("Starting SyncAny...")
 	state, commit, err := r.syncer.SyncAny(discoveryTime, hook)
 
 	r.mtx.Lock()

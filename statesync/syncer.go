@@ -147,6 +147,7 @@ func (s *syncer) SyncAny(discoveryTime time.Duration, retryHook func()) (sm.Stat
 		s.logger.Info(fmt.Sprintf("Discovering snapshots for %v", discoveryTime))
 		time.Sleep(discoveryTime)
 	}
+	s.logger.Info(fmt.Sprintf("Discover wait time pssed for %v", discoveryTime))
 
 	// The app may ask us to retry a snapshot restoration, in which case we need to reuse
 	// the snapshot and chunk queue from the previous loop iteration.
@@ -177,8 +178,9 @@ func (s *syncer) SyncAny(discoveryTime time.Duration, retryHook func()) (sm.Stat
 			}
 			defer chunks.Close() // in case we forget to close it elsewhere
 		}
-
+		s.logger.Info(fmt.Sprintf("Start sync at %s", time.Now()))
 		newState, commit, err := s.Sync(snapshot, chunks)
+		s.logger.Info(fmt.Sprintf("Ended sync at %s", time.Now()))
 		switch {
 		case err == nil:
 			return newState, commit, nil
@@ -235,6 +237,7 @@ func (s *syncer) SyncAny(discoveryTime time.Duration, retryHook func()) (sm.Stat
 // Sync executes a sync for a specific snapshot, returning the latest state and block commit which
 // the caller must use to bootstrap the node.
 func (s *syncer) Sync(snapshot *snapshot, chunks *chunkQueue) (sm.State, *types.Commit, error) {
+	startTime := time.Now().UnixMilli()
 	s.mtx.Lock()
 	if s.chunks != nil {
 		s.mtx.Unlock()
@@ -261,11 +264,19 @@ func (s *syncer) Sync(snapshot *snapshot, chunks *chunkQueue) (sm.State, *types.
 	}
 	snapshot.trustedAppHash = appHash
 
+	getHashComplete := time.Now().UnixMilli()
+	getHashLatency := getHashComplete - startTime
+	s.logger.Info(fmt.Sprintf("GetHashLatency latency is: %d", getHashLatency))
+
 	// Offer snapshot to ABCI app.
 	err = s.offerSnapshot(snapshot)
 	if err != nil {
 		return sm.State{}, nil, err
 	}
+
+	offerSnapshotComplete := time.Now().UnixMilli()
+	offerSnapshotLatency := offerSnapshotComplete - getHashComplete
+	s.logger.Info(fmt.Sprintf("OffserSnapShot latency is: %d", offerSnapshotLatency))
 
 	// Spawn chunk fetchers. They will terminate when the chunk queue is closed or context cancelled.
 	fetchCtx, cancel := context.WithCancel(context.TODO())
@@ -294,12 +305,18 @@ func (s *syncer) Sync(snapshot *snapshot, chunks *chunkQueue) (sm.State, *types.
 		}
 		return sm.State{}, nil, errRejectSnapshot
 	}
+	buildEProviderStateComplete := time.Now().UnixMilli()
+	buildProviderStateLatency := buildEProviderStateComplete - offerSnapshotComplete
+	s.logger.Info(fmt.Sprintf("BuildProviderState latency is: %d", buildProviderStateLatency))
 
 	// Restore snapshot
 	err = s.applyChunks(chunks)
 	if err != nil {
 		return sm.State{}, nil, err
 	}
+	applyChunksComplete := time.Now().UnixMilli()
+	applyChunksLatency := applyChunksComplete - buildEProviderStateComplete
+	s.logger.Info(fmt.Sprintf("ApplyChunks latency is: %d", applyChunksLatency))
 
 	// Verify app and app version
 	if err := s.verifyApp(snapshot, state.Version.Consensus.App); err != nil {
@@ -353,6 +370,9 @@ func (s *syncer) offerSnapshot(snapshot *snapshot) error {
 // response, or nil once the snapshot is fully restored.
 func (s *syncer) applyChunks(chunks *chunkQueue) error {
 	for {
+		s.logger.Info("Start applying chunks loop...")
+
+		waitForNextChunkStart := time.Now().UnixMilli()
 		chunk, err := chunks.Next()
 		if err == errDone {
 			return nil
@@ -360,11 +380,20 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 			return fmt.Errorf("failed to fetch chunk: %w", err)
 		}
 
+		waitForNextChunkEnd := time.Now().UnixMilli()
+		waitForNextChunkLatency := waitForNextChunkEnd - waitForNextChunkStart
+		s.logger.Info(fmt.Sprintf("Wait for next chunk id %d latency is: %d", chunk.Index, waitForNextChunkLatency))
+
 		resp, err := s.conn.ApplySnapshotChunkSync(abci.RequestApplySnapshotChunk{
 			Index:  chunk.Index,
 			Chunk:  chunk.Chunk,
 			Sender: string(chunk.Sender),
 		})
+
+		applySnapshotChunkEnd := time.Now().UnixMilli()
+		applySnapshotChunkLatency := applySnapshotChunkEnd - waitForNextChunkEnd
+		s.logger.Info(fmt.Sprintf("Apply chunk id %d latency is: %d", chunk.Index, applySnapshotChunkLatency))
+
 		if err != nil {
 			return fmt.Errorf("failed to apply chunk %v: %w", chunk.Index, err)
 		}
@@ -409,6 +438,12 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 // fetchChunks requests chunks from peers, receiving allocations from the chunk queue. Chunks
 // will be received from the reactor via syncer.AddChunks() to chunkQueue.Add().
 func (s *syncer) fetchChunks(ctx context.Context, snapshot *snapshot, chunks *chunkQueue) {
+	startTime := time.Now().UnixMilli()
+	defer func() {
+		endTime := time.Now().UnixMilli()
+		latency := endTime - startTime
+		s.logger.Info(fmt.Sprintf("FetchChunks latency is %d", latency))
+	}()
 	var (
 		next  = true
 		index uint32
@@ -440,7 +475,11 @@ func (s *syncer) fetchChunks(ctx context.Context, snapshot *snapshot, chunks *ch
 		ticker := time.NewTicker(s.retryTimeout)
 		defer ticker.Stop()
 
+		requestStart := time.Now().UnixMilli()
 		s.requestChunk(snapshot, index)
+		requestEnd := time.Now().UnixMilli()
+		latency := requestEnd - requestStart
+		s.logger.Info(fmt.Sprintf("RequestChunk id %d latency is %d", index, latency))
 
 		select {
 		case <-chunks.WaitFor(index):
