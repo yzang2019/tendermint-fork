@@ -178,6 +178,7 @@ OUTER_LOOP:
 		}
 	}
 
+	fmt.Printf("Breaking out of loop validatorSet \n")
 	valSet, err := types.ValidatorSetFromExistingValidators(vals)
 	if err != nil {
 		return nil, provider.ErrBadLightBlock{Reason: err}
