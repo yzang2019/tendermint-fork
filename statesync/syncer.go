@@ -251,7 +251,7 @@ func (s *syncer) Sync(snapshot *snapshot, chunks *chunkQueue) (sm.State, *types.
 		s.mtx.Unlock()
 	}()
 
-	hctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	hctx, cancel := context.WithTimeout(context.TODO(), 60*time.Second)
 	defer cancel()
 
 	appHash, err := s.stateProvider.AppHash(hctx, snapshot.Height)
