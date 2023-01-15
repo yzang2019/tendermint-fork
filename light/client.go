@@ -594,6 +594,7 @@ func (c *Client) verifyLightBlock(ctx context.Context, newLightBlock *types.Ligh
 		if err != nil {
 			return fmt.Errorf("can't get first light block: %w", err)
 		}
+		fmt.Printf("[Tendermint] newLightBlock height %d, latestTrustedBlock height %d, firstBlockHeight height %d\n", newLightBlock.Height, c.latestTrustedBlock.Height, firstBlockHeight)
 		err = c.backwards(ctx, firstBlock.Header, newLightBlock.Header)
 
 	// Verifying between first and last trusted light block
@@ -947,7 +948,7 @@ func (c *Client) backwards(
 	)
 
 	for verifiedHeader.Height > newHeader.Height {
-		fmt.Println("[Tendermint] call lightBlockFromPrimary from backwards ")
+		fmt.Printf("[Tendermint] call lightBlockFromPrimary from backwards, verified height %d, newHeader height %d\n", verifiedHeader.Height, newHeader.Height)
 		interimBlock, err := c.lightBlockFromPrimary(ctx, verifiedHeader.Height-1)
 		if err != nil {
 			return fmt.Errorf("failed to obtain the header at height #%d: %w", verifiedHeader.Height-1, err)
@@ -977,6 +978,7 @@ func (c *Client) backwards(
 			}
 
 			// try again with the new primary
+			fmt.Printf("[Tendermint] Trying again for backwards \n")
 			return c.backwards(ctx, verifiedHeader, newPrimarysBlock.Header)
 		}
 		verifiedHeader = interimHeader
