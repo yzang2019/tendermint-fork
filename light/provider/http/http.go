@@ -69,11 +69,13 @@ func (p *http) String() string {
 func (p *http) LightBlock(ctx context.Context, height int64) (*types.LightBlock, error) {
 	h, err := validateHeight(height)
 	if err != nil {
+		fmt.Println("[Tendermint] Validate height failed ")
 		return nil, provider.ErrBadLightBlock{Reason: err}
 	}
 
 	sh, err := p.signedHeader(ctx, h)
 	if err != nil {
+		fmt.Println("[Tendermint] signedHeader failed ")
 		return nil, err
 	}
 
@@ -85,6 +87,7 @@ func (p *http) LightBlock(ctx context.Context, height int64) (*types.LightBlock,
 
 	vs, err := p.validatorSet(ctx, &sh.Height)
 	if err != nil {
+		fmt.Println("[Tendermint] validatorset failed ")
 		return nil, err
 	}
 
@@ -95,6 +98,7 @@ func (p *http) LightBlock(ctx context.Context, height int64) (*types.LightBlock,
 
 	err = lb.ValidateBasic(p.chainID)
 	if err != nil {
+		fmt.Println("[Tendermint] ValidateBasic failed ")
 		return nil, provider.ErrBadLightBlock{Reason: err}
 	}
 

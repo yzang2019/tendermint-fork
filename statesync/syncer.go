@@ -479,7 +479,7 @@ func (s *syncer) fetchChunks(ctx context.Context, snapshot *snapshot, chunks *ch
 					return
 				default:
 				}
-				time.Sleep(2 * time.Second)
+				time.Sleep(1 * time.Second)
 				continue
 			}
 			if err != nil {

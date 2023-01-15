@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	abcicli "github.com/tendermint/tendermint/abci/client"
 	"github.com/tendermint/tendermint/abci/types"
 )
@@ -193,11 +192,9 @@ func (app *appConnSnapshot) LoadSnapshotChunkSync(
 
 func (app *appConnSnapshot) ApplySnapshotChunkSync(
 	req types.RequestApplySnapshotChunk) (*types.ResponseApplySnapshotChunk, error) {
-	fmt.Println("appConn start doing ApplySnapshotChunkSync")
 	return app.appConn.ApplySnapshotChunkSync(req)
 }
 
 func (app *appConnSnapshot) ApplySnapshotChunkAsync(req types.RequestApplySnapshotChunk) *abcicli.ReqRes {
-	fmt.Println("appConn start doing ApplySnapshotChunkAsync")
 	return app.appConn.ApplySnapshotChunkAsync(req)
 }
