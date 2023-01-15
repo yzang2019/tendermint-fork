@@ -488,7 +488,7 @@ func (c *Client) VerifyLightBlockAtHeight(ctx context.Context, height int64, now
 	}
 
 	// Request the light block from primary
-	fmt.Println("[Tendermint] call lightBlockFromPrimary from VerifyLightBlockAtHeight ")
+	fmt.Printf("[Tendermint] call lightBlockFromPrimary from VerifyLightBlockAtHeight with height %d \n", height)
 	l, err := c.lightBlockFromPrimary(ctx, height)
 	if err != nil {
 		return nil, err
