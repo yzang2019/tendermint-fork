@@ -87,7 +87,7 @@ func (p *http) LightBlock(ctx context.Context, height int64) (*types.LightBlock,
 
 	vs, err := p.validatorSet(ctx, &sh.Height)
 	if err != nil {
-		fmt.Println("[Tendermint] validatorset failed ")
+		fmt.Printf("[Tendermint] validatorset failed with error:%s\n", err.Error())
 		return nil, err
 	}
 
@@ -98,7 +98,7 @@ func (p *http) LightBlock(ctx context.Context, height int64) (*types.LightBlock,
 
 	err = lb.ValidateBasic(p.chainID)
 	if err != nil {
-		fmt.Println("[Tendermint] ValidateBasic failed ")
+		fmt.Printf("[Tendermint] ValidateBasic failed with error:%s\n", err.Error())
 		return nil, provider.ErrBadLightBlock{Reason: err}
 	}
 
@@ -128,8 +128,10 @@ OUTER_LOOP:
 	for len(vals) != total && page <= maxPages {
 		for attempt := 1; attempt <= maxRetryAttempts; attempt++ {
 			res, err := p.client.Validators(ctx, height, &page, &perPage)
+
 			switch {
 			case err == nil:
+				fmt.Printf("Got a validator response with count %d and total %d \n", res.Count, res.Total)
 				// Validate response.
 				if len(res.Validators) == 0 {
 					return nil, provider.ErrBadLightBlock{
@@ -150,9 +152,11 @@ OUTER_LOOP:
 				continue OUTER_LOOP
 
 			case regexpTooHigh.MatchString(err.Error()):
+				fmt.Printf("Got too high respone %s\n", err.Error())
 				return nil, provider.ErrHeightTooHigh
 
 			case regexpMissingHeight.MatchString(err.Error()):
+				fmt.Printf("Got missing height respone %s\n", err.Error())
 				return nil, provider.ErrLightBlockNotFound
 
 			// if we have exceeded retry attempts then return no response error
@@ -161,11 +165,13 @@ OUTER_LOOP:
 
 			case regexpTimedOut.MatchString(err.Error()):
 				// we wait and try again with exponential backoff
+				fmt.Printf("Got timeout respone %s\n", err.Error())
 				time.Sleep(backoffTimeout(uint16(attempt)))
 				continue
 
 			// context canceled or connection refused we return the error
 			default:
+				fmt.Printf("Got other connection refused respone %s\n", err.Error())
 				return nil, err
 			}
 
