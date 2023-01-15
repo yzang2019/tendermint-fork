@@ -115,7 +115,7 @@ func (p *http) validatorSet(ctx context.Context, height *int64) (*types.Validato
 	// Since the malicious node could report a massive number of pages, making us
 	// spend a considerable time iterating, we restrict the number of pages here.
 	// => 10000 validators max
-	const maxPages = 100
+	const maxPages = 10
 
 	var (
 		perPage = 100
@@ -125,13 +125,13 @@ func (p *http) validatorSet(ctx context.Context, height *int64) (*types.Validato
 	)
 
 OUTER_LOOP:
-	for len(vals) < total || page <= maxPages {
+	for len(vals) != total && page <= maxPages {
 		for attempt := 1; attempt <= maxRetryAttempts; attempt++ {
 			res, err := p.client.Validators(ctx, height, &page, &perPage)
 
 			switch {
 			case err == nil:
-				fmt.Printf("Got a validator response with count %d and total %d \n", res.Count, res.Total)
+				fmt.Printf("Got a validator response with count %d and total %d and length: %d \n", res.Count, res.Total, len(res.Validators))
 				// Validate response.
 				if len(res.Validators) == 0 {
 					return nil, provider.ErrBadLightBlock{
