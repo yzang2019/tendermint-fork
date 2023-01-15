@@ -85,6 +85,7 @@ func (p *http) LightBlock(ctx context.Context, height int64) (*types.LightBlock,
 		}
 	}
 
+	fmt.Printf("[Tendermint] Calling Validate set for %d \n", &sh.Height)
 	vs, err := p.validatorSet(ctx, &sh.Height)
 	if err != nil {
 		fmt.Printf("[Tendermint] validatorset failed with error:%s\n", err.Error())
