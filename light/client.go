@@ -304,6 +304,7 @@ func (c *Client) checkTrustedHeaderUsingOptions(ctx context.Context, options Tru
 	var primaryHash []byte
 	switch {
 	case options.Height > c.latestTrustedBlock.Height:
+		fmt.Println("[Tendermint] call lightBlockFromPrimary from checkTrustedHeaderUsingOptions ")
 		h, err := c.lightBlockFromPrimary(ctx, c.latestTrustedBlock.Height)
 		if err != nil {
 			return err
@@ -361,6 +362,7 @@ func (c *Client) checkTrustedHeaderUsingOptions(ctx context.Context, options Tru
 // primary provider.
 func (c *Client) initializeWithTrustOptions(ctx context.Context, options TrustOptions) error {
 	// 1) Fetch and verify the light block.
+	fmt.Println("[Tendermint] call lightBlockFromPrimary from initializeWithTrustOptions ")
 	l, err := c.lightBlockFromPrimary(ctx, options.Height)
 	if err != nil {
 		return err
@@ -444,6 +446,7 @@ func (c *Client) Update(ctx context.Context, now time.Time) (*types.LightBlock, 
 		return nil, nil
 	}
 
+	fmt.Println("[Tendermint] call lightBlockFromPrimary from Update ")
 	latestBlock, err := c.lightBlockFromPrimary(ctx, 0)
 	if err != nil {
 		return nil, err
@@ -485,6 +488,7 @@ func (c *Client) VerifyLightBlockAtHeight(ctx context.Context, height int64, now
 	}
 
 	// Request the light block from primary
+	fmt.Println("[Tendermint] call lightBlockFromPrimary from VerifyLightBlockAtHeight ")
 	l, err := c.lightBlockFromPrimary(ctx, height)
 	if err != nil {
 		return nil, err
@@ -543,6 +547,7 @@ func (c *Client) VerifyHeader(ctx context.Context, newHeader *types.Header, now 
 	}
 
 	// Request the header and the vals.
+	fmt.Println("[Tendermint] call lightBlockFromPrimary from VerifyHeader ")
 	l, err = c.lightBlockFromPrimary(ctx, newHeader.Height)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve light block from primary to verify against: %w", err)
@@ -628,6 +633,7 @@ func (c *Client) verifySequential(
 		if height == newLightBlock.Height { // last light block
 			interimBlock = newLightBlock
 		} else { // intermediate light blocks
+			fmt.Println("[Tendermint] call lightBlockFromPrimary from verifySequential ")
 			interimBlock, err = c.lightBlockFromPrimary(ctx, height)
 			if err != nil {
 				return ErrVerificationFailed{From: verifiedBlock.Height, To: height, Reason: err}
@@ -941,6 +947,7 @@ func (c *Client) backwards(
 	)
 
 	for verifiedHeader.Height > newHeader.Height {
+		fmt.Println("[Tendermint] call lightBlockFromPrimary from backwards ")
 		interimBlock, err := c.lightBlockFromPrimary(ctx, verifiedHeader.Height-1)
 		if err != nil {
 			return fmt.Errorf("failed to obtain the header at height #%d: %w", verifiedHeader.Height-1, err)
@@ -1003,6 +1010,7 @@ func (c *Client) lightBlockFromPrimary(ctx context.Context, height int64) (*type
 
 	case provider.ErrNoResponse, provider.ErrLightBlockNotFound, provider.ErrHeightTooHigh:
 		// we find a new witness to replace the primary
+		fmt.Println("[Tendermint] will call findNewPrimary again")
 		c.logger.Info("error from light block request from primary, replacing...",
 			"error", err, "height", height, "primary", c.primary)
 		return c.findNewPrimary(ctx, height, false)
@@ -1010,6 +1018,7 @@ func (c *Client) lightBlockFromPrimary(ctx context.Context, height int64) (*type
 	default:
 		// The light client has most likely received either provider.ErrUnreliableProvider or provider.ErrBadLightBlock
 		// These errors mean that the light client should drop the primary and try with another provider instead
+		fmt.Println("[Tendermint] will call findNewPrimary again")
 		c.logger.Info("error from light block request from primary, removing...",
 			"error", err, "height", height, "primary", c.primary)
 		return c.findNewPrimary(ctx, height, true)
