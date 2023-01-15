@@ -125,7 +125,7 @@ func (p *http) validatorSet(ctx context.Context, height *int64) (*types.Validato
 	)
 
 OUTER_LOOP:
-	for len(vals) != total && page <= maxPages {
+	for len(vals) < total || page <= maxPages {
 		for attempt := 1; attempt <= maxRetryAttempts; attempt++ {
 			res, err := p.client.Validators(ctx, height, &page, &perPage)
 
