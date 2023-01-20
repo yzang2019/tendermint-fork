@@ -302,8 +302,10 @@ func (h *Handshaker) ReplayBlocks(
 	// If appBlockHeight == 0 it means that we are at genesis and hence should send InitChain.
 	if appBlockHeight == 0 {
 		validators := make([]*types.Validator, len(h.genDoc.Validators))
+		fmt.Printf("[Tendermint] h.genDoc.Validators count is %d\n", len(h.genDoc.Validators))
 		for i, val := range h.genDoc.Validators {
 			validators[i] = types.NewValidator(val.PubKey, val.Power)
+			fmt.Printf("[Tendermint] validator name is %s\n", val.Name)
 		}
 		validatorSet := types.NewValidatorSet(validators)
 		nextVals := types.TM2PB.ValidatorUpdates(validatorSet)
@@ -316,7 +318,9 @@ func (h *Handshaker) ReplayBlocks(
 			Validators:      nextVals,
 			AppStateBytes:   h.genDoc.AppState,
 		}
+		fmt.Printf("[Tendermint] appBlockHeight is 0, doing init chain sync now\n")
 		res, err := proxyApp.Consensus().InitChainSync(req)
+		fmt.Printf("[Tendermint] Init Chain response is %s\n", res.String())
 		if err != nil {
 			return nil, err
 		}
