@@ -446,7 +446,7 @@ func (c *Client) Update(ctx context.Context, now time.Time) (*types.LightBlock, 
 		return nil, nil
 	}
 
-	fmt.Println("[Tendermint] call lightBlockFromPrimary from Update ")
+	fmt.Println("[Tendermint-Debug] call lightBlockFromPrimary from Update ")
 	latestBlock, err := c.lightBlockFromPrimary(ctx, 0)
 	if err != nil {
 		return nil, err
@@ -561,7 +561,7 @@ func (c *Client) VerifyHeader(ctx context.Context, newHeader *types.Header, now 
 }
 
 func (c *Client) verifyLightBlock(ctx context.Context, newLightBlock *types.LightBlock, now time.Time) error {
-	c.logger.Info("VerifyHeader", "height", newLightBlock.Height, "hash", newLightBlock.Hash())
+	c.logger.Info("[Tendermint-Debug] VerifyHeader", "height", newLightBlock.Height, "hash", newLightBlock.Hash())
 
 	var (
 		verifyFunc func(ctx context.Context, trusted *types.LightBlock, new *types.LightBlock, now time.Time) error
@@ -585,6 +585,7 @@ func (c *Client) verifyLightBlock(ctx context.Context, newLightBlock *types.Ligh
 	switch {
 	// Verifying forwards
 	case newLightBlock.Height >= c.latestTrustedBlock.Height:
+		fmt.Printf("[Tendermint-Debug] verifying forwards for new height %d, latestTrustedBlock height %d\n", newLightBlock.Height, c.latestTrustedBlock.Height)
 		err = verifyFunc(ctx, c.latestTrustedBlock, newLightBlock, now)
 
 	// Verifying backwards
@@ -594,7 +595,7 @@ func (c *Client) verifyLightBlock(ctx context.Context, newLightBlock *types.Ligh
 		if err != nil {
 			return fmt.Errorf("can't get first light block: %w", err)
 		}
-		fmt.Printf("[Tendermint] newLightBlock height %d, latestTrustedBlock height %d, firstBlockHeight height %d\n", newLightBlock.Height, c.latestTrustedBlock.Height, firstBlockHeight)
+		fmt.Printf("[Tendermint-Debug] newLightBlock height %d, latestTrustedBlock height %d, firstBlockHeight height %d\n", newLightBlock.Height, c.latestTrustedBlock.Height, firstBlockHeight)
 		err = c.backwards(ctx, firstBlock.Header, newLightBlock.Header)
 
 	// Verifying between first and last trusted light block
@@ -604,6 +605,7 @@ func (c *Client) verifyLightBlock(ctx context.Context, newLightBlock *types.Ligh
 		if err != nil {
 			return fmt.Errorf("can't get signed header before height %d: %w", newLightBlock.Height, err)
 		}
+		fmt.Printf("[Tendermint-Debug] verifying between first and last trusted light block for closest block height %d, new block height %d\n", closestBlock.Height, newLightBlock.Height)
 		err = verifyFunc(ctx, closestBlock, newLightBlock, now)
 	}
 	if err != nil {
